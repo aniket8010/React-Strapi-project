@@ -1,17 +1,36 @@
-import React, { useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Button, Form, Input } from 'antd';
-import { createTodo } from '../Services';
+import { globalContext } from '../../../Provider/Provider';
+import { createTodo, updateTodo } from '../Services';
+import { UPDATE_TODO_FORM_DATA } from '../../../Provider/Actions';
 const { TextArea } = Input
 
+
 const SubmitForm = () => {
-    const [loading, setLoading]=useState(false)
+    const [loading, setLoading] = useState(false)
+    //using context api
+    const { values: ReducerValues, dispatch } = useContext(globalContext)
     const formRef = useRef(null)
     const onFinish = async (values) => {
-        setLoading(true) 
-      const data=  await createTodo({ data: values })
+        setLoading(true)
+        // await createTodo({ data: values })
+        if (ReducerValues?.initialTodoFormData) {
+            await updateTodo(ReducerValues?.initialTodoFormData?.id, { data: values })
+        } else {
+            await createTodo({ data: values })
+        }
+        await ReducerValues?.refetchTodoDataApi()
+        formRef.current.resetFields()
         setLoading(false)
-        console.log(data)
+        dispatch({ type: UPDATE_TODO_FORM_DATA, payload: null })
     };
+
+    useEffect(() => {
+        if (ReducerValues?.initialTodoFormData) {
+            formRef.current?.setFieldsValue(ReducerValues?.initialTodoFormData)
+        }
+    }, [ReducerValues?.initialTodoFormData])
+
     return <Form
         ref={formRef}
         name="basic"
@@ -59,7 +78,7 @@ const SubmitForm = () => {
         <Form.Item
         >
             <Button type="primary" htmlType="submit">
-                {loading ? "Loading..." : "Submit"}
+                {loading ? "Loading..." : ReducerValues?.initialTodoFormData ? "Update" : "Submit"}
             </Button>
         </Form.Item>
     </Form>
